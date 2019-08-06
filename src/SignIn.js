@@ -17,6 +17,9 @@ import {
   CognitoUser,
   AuthenticationDetails
 } from "amazon-cognito-identity-js";
+import moment from "moment";
+import { checkSessionIsActive } from "./util.js";
+import raw from "./apiService";
 
 export default class SignIn extends Component {
   constructor(props) {
@@ -25,6 +28,8 @@ export default class SignIn extends Component {
       email: "",
       password: "",
       toggleView: false,
+      confirmView: false,
+      verificationCode: "",
       classes: makeStyles(theme => ({
         "@global": {
           body: {
@@ -67,17 +72,20 @@ export default class SignIn extends Component {
           alert(err.message || JSON.stringify(err));
           return;
         }
-        console.log("session validity: " + session.isValid());
+        console.log(session + "session validity: " + session.isValid());
       });
     }
   }
 
   componentDidMount() {
-    this.isSessionValid();
+    if (checkSessionIsActive()) {
+      this.props.history.push("/admin");
+    }
   }
-  
+
   setEmail = email => this.setState({ email });
   setPassword = password => this.setState({ password });
+  setVerification = verificationCode => this.setState({ verificationCode });
   toggleView = () =>
     this.setState({
       toggleView: !this.state.toggleView,
@@ -89,11 +97,33 @@ export default class SignIn extends Component {
     UserPoolId: "ap-south-1_FenySRVT7", // Your user pool id here
     ClientId: "3dkoljtulnt2gm119v99lu0d3" // Your client id here
   };
+  addUser = email => {
+    console.log("added");
+    raw.post(
+      "http://172.19.4.39:4000/user/addUser",
+      {
+        user: email
+      },
+      true
+    );
+  };
+  setCookie = (name, accessToken) => {
+    document.cookie =
+      name +
+      "=" +
+      accessToken +
+      "; expires=" +
+      moment()
+        .add(60, "minutes")
+        .utc()
+        .format("ddd, DD MMM YYYY HH:mm:ss " + "UTC") +
+      "; path=/;";
+    console.log("karan", document.cookie);
+  };
 
   signUp = () => {
-    const { email, password } = this.state;
+    const { email, password, confirmView } = this.state;
     const userPool = new CognitoUserPool(this.poolData);
-
     const attributeList = [];
 
     const dataEmail = {
@@ -111,17 +141,14 @@ export default class SignIn extends Component {
     attributeList.push(attributeEmail);
     attributeList.push(attributeName);
 
-    userPool.signUp(email, password, attributeList, null, function(
-      err,
-      result
-    ) {
+    userPool.signUp(email, password, attributeList, null, (err, result) => {
       if (err) {
         alert(err.message || JSON.stringify(err));
         return;
       }
-      var cognitoUser = result.user;
-      console.log("user name is " + cognitoUser.getUsername());
+      this.addUser(email);
     });
+    this.setState({ confirmView: !confirmView });
   };
 
   signIn = () => {
@@ -139,30 +166,13 @@ export default class SignIn extends Component {
     const cognitoUser = new CognitoUser(userData);
     cognitoUser.authenticateUser(authenticationDetails, {
       onSuccess: result => {
-        var accessToken = result.getAccessToken().getJwtToken();
-        console.log(accessToken);
+        const accessToken = result.getAccessToken().getJwtToken();
+
+        this.setCookie("accessToken", accessToken);
+        this.setCookie("userName", this.state.email);
         this.setState({ email: "", password: "" });
-        //POTENTIAL: Region needs to be set if not already set previously elsewhere.
-        // AWS.config.region = '<region>';
 
-        // AWS.config.credentials = new AWS.CognitoIdentityCredentials({
-        //     IdentityPoolId : '...', // your identity pool id here
-        //     Logins : {
-        //         // Change the key below according to the specific region your user pool is in.
-        //         'cognito-idp.<region>.amazonaws.com/<YOUR_USER_POOL_ID>' : result.getIdToken().getJwtToken()
-        //     }
-        // });
-
-        // //refreshes credentials using AWS.CognitoIdentity.getCredentialsForIdentity()
-        // AWS.config.credentials.refresh((error) => {
-        //     if (error) {
-        //          console.error(error);
-        //     } else {
-        //          // Instantiate aws sdk service objects now that the credentials have been updated.
-        //          // example: var s3 = new AWS.S3();
-        //          console.log('Successfully logged!');
-        //     }
-        // });
+        this.props.history.push("/admin");
       },
 
       onFailure: function(err) {
@@ -170,70 +180,117 @@ export default class SignIn extends Component {
       }
     });
   };
+
+  confirmUser = () => {
+    const { email, verificationCode, toggleView, confirmView } = this.state;
+
+    const userPool = new CognitoUserPool(this.poolData);
+    const userData = {
+      Username: email,
+      Pool: userPool
+    };
+
+    var cognitoUser = new CognitoUser(userData);
+    cognitoUser.confirmRegistration(verificationCode, true, (err, result) => {
+      if (err) {
+        alert(err.message || JSON.stringify(err));
+        return;
+      }
+      this.setState({ toggleView: !toggleView, confirmView: !confirmView });
+    });
+  };
   render() {
-    const { toggleView, email, password } = this.state;
+    const { toggleView, confirmView } = this.state;
 
     return (
       <Container component="main" maxWidth="xs">
         <CssBaseline />
-        <div className={this.state.classes.paper}>
-          <Avatar className={this.state.classes.avatar}>
-            <LockOutlinedIcon />
-          </Avatar>
-          <Typography component="h1" variant="h5">
-            {toggleView ? "Sign Up" : "Sign In"}
-          </Typography>
-          <TextField
-            variant="outlined"
-            margin="normal"
-            required
-            fullWidth
-            id="email"
-            label="Email Address"
-            name="email"
-            onChange={e => this.setEmail(e.target.value)}
-            autoFocus
-          />
-          <TextField
-            variant="outlined"
-            margin="normal"
-            required
-            fullWidth
-            onChange={e => this.setPassword(e.target.value)}
-            name="password"
-            label="Password"
-            type="password"
-            id="password"
-          />
-          {!toggleView && (
-            <FormControlLabel
-              control={<Checkbox value="remember" color="primary" />}
-              label="Remember me"
+        {!confirmView && (
+          <div className={this.state.classes.paper}>
+            <Avatar className={this.state.classes.avatar}>
+              <LockOutlinedIcon />
+            </Avatar>
+            <Typography component="h1" variant="h5">
+              {toggleView ? "Sign Up" : "Sign In"}
+            </Typography>
+            <TextField
+              variant="outlined"
+              margin="normal"
+              required
+              fullWidth
+              id="email"
+              label="Email Address"
+              name="email"
+              onChange={e => this.setEmail(e.target.value)}
+              autoFocus
             />
-          )}
-          <Button
-            fullWidth
-            variant="contained"
-            color="primary"
-            className={this.state.classes.submit}
-            onClick={() => (toggleView ? this.signUp() : this.signIn())}
-          >
-            {toggleView ? "Sign Up" : "Sign In"}
-          </Button>
-          <Grid container>
-            <Grid item>
-              {!toggleView && (
-                <Link
-                  href="#"
-                  onClick={() => this.toggleView()}
-                  variant="body2"
-                >
-                  {"Don't have an account? Sign Up"}
-                </Link>
-              )}
+            <TextField
+              variant="outlined"
+              margin="normal"
+              required
+              fullWidth
+              onChange={e => this.setPassword(e.target.value)}
+              name="password"
+              label="Password"
+              type="password"
+              id="password"
+            />
+            {!toggleView && (
+              <FormControlLabel
+                control={<Checkbox value="remember" color="primary" />}
+                label="Remember me"
+              />
+            )}
+            <Button
+              fullWidth
+              variant="contained"
+              color="primary"
+              className={this.state.classes.submit}
+              onClick={() => (toggleView ? this.signUp() : this.signIn())}
+            >
+              {toggleView ? "Sign Up" : "Sign In"}
+            </Button>
+            <Grid container>
+              <Grid item>
+                {!toggleView && (
+                  <Link
+                    href="#"
+                    onClick={() => this.toggleView()}
+                    variant="body2"
+                  >
+                    {"Don't have an account? Sign Up"}
+                  </Link>
+                )}
+              </Grid>
             </Grid>
-          </Grid>
-        </div>
+            <div>jainkaran275@gmail.com</div>
+            <div>0987654321 </div>
+          </div>
+        )}
+        {confirmView && (
+          <div>
+            <TextField
+              variant="outlined"
+              margin="normal"
+              required
+              fullWidth
+              onChange={e => this.setVerification(e.target.value)}
+              name="password"
+              label="Password"
+              type="password"
+              id="password"
+            />
+            <Button
+              fullWidth
+              variant="contained"
+              color="primary"
+              className={this.state.classes.submit}
+              onClick={() => this.confirmUser()}
+            >
+              Confirm
+            </Button>
+          </div>
+        )}
       </Container>
     );
   }
