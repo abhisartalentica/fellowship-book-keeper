@@ -6,7 +6,8 @@ export default class SignIn extends Component {
   constructor(props) {
     super(props);
     this.state = {
-      books: []
+      books: [],
+      userInfo: {}
     };
   }
   componentDidMount() {
@@ -17,10 +18,17 @@ export default class SignIn extends Component {
       .then(r => {
         this.setState({ books: r });
       });
+    raw
+      .post("http://172.19.4.39:4000/user/getUser", {
+        user: getCookie("userName")
+      })
+      .then(r => {
+        this.setState({ userInfo: r[0] });
+      });
   }
 
   render() {
-    const { books } = this.state;
+    const { books, userInfo } = this.state;
 
     return (
       <div>
@@ -35,30 +43,34 @@ export default class SignIn extends Component {
           </button>
         </div>
         <div>
-        <table>
-          <thead>
-            <tr>
-              <th>Book</th>
-              <th>Available</th>
-              <th>Issued to</th>
-              <th>Issued At</th>
-              <th>Issued Till</th>
-            </tr>
-          </thead>
-          <tbody>
-            {books.map(book => (
-              <tr key={book.bookName}>
-                <td>{book.bookName}</td>
-                <td>{book.availability ? "Yes" : "No"}</td>
-                <td>{book.issuedTo}</td>
-                <td>{book.issuedAt}</td>
-                <td>{book.issuedTill}</td>
-
-                <td>{book.availability && <button>Assign</button>}</td>
+          <table>
+            <thead>
+              <tr>
+                <th>Book</th>
+                <th>Available</th>
+                <th>Issued to</th>
+                <th>Issued At</th>
+                <th>Issued Till</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {books.map(book => (
+                <tr key={book.bookName}>
+                  <td>{book.bookName}</td>
+                  <td>{book.availability ? "Yes" : "No"}</td>
+                  <td>{book.issuedTo}</td>
+                  <td>{book.issuedAt}</td>
+                  <td>{book.issuedTill}</td>
+
+                  <td>
+                    {userInfo.assign > 0 && book.availability && (
+                      <button>Assign</button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
     );

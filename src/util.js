@@ -16,7 +16,7 @@ export const checkSessionIsActive = () => {
 export const getCookie = name => {
   const cookies = document.cookie.split(";");
   const cookieName = name + "=";
-  return cookies.find(cookie => cookie.includes(cookieName));
+  return cookies.find(cookie => cookie.includes(cookieName)).trim().split("=")[1];
 };
 
 export const removeCookies = () => {
