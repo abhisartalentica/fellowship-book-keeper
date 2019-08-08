@@ -1,3 +1,126 @@
-h1, p {
+h1,
+p {
   font-family: Lato;
+}
+body {
+  background: #f8f8f8;
+  margin: 0;
+  text-align: -webkit-center;
+}
+input {
+  display: block;
+  width: 70%;
+  height: 35px;
+  margin: 10px auto;
+  border: 1px solid #cccccc;
+  border-radius: 5px;
+  font-size: 15px;
+}
+.button-primary {
+  display: block;
+  width: 70%;
+  height: 35px;
+  margin: 10px auto;
+  font-size: 17px;
+  color: white;
+  background: cornflowerblue;
+}
+.card {
+  width: 30vw;
+  height: 50vh;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  box-shadow: 1px 1px;
+  background: white;
+  border: 1px solid #ccc;
+  padding: 10px;
+}
+.text-center {
+  text-align: center;
+}
+table {
+  font-family: arial, sans-serif;
+  border-collapse: collapse;
+  width: 100%;
+}
+
+td,
+th {
+  border: 1px solid #dddddd;
+  text-align: left;
+  padding: 8px;
+}
+
+tr:nth-child(even) {
+  background-color: #dddddd;
+}
+
+.table-book {
+  padding-left: 30px;
+  padding-top: 10px;
+}
+.header {
+  background: cornflowerblue;
+  height: 50px;
+  display: flex;
+  justify-content: space-between;
+  cursor: pointer;
+}
+.heading {
+  position: absolute;
+  font-size: 36px;
+  font-family: Arial, Helvetica, sans-serif;
+ 
+}
+.input-search {
+  width: 50%;
+  margin: 0;
+}
+.searchBox {
+  padding-left: 30px;
+  padding-top: 40px;
+}
+.card-home {
+  width: 95%;
+  text-align: center;
+  box-shadow: 1px 1px 10px #ccc;
+  background: white;
+  border: 1px solid #ccc;
+  padding: 10px;
+  margin-top: 15px;
+}
+.loader {
+  border: 16px solid #f3f3f3;
+  border-radius: 50%;
+  border-top: 16px solid #3498db;
+  width: 120px;
+  height: 120px;
+  position: absolute;
+  left: 44%;
+  top: 40%;
+  transform: translate(-50%, -50%);
+  -webkit-animation: spin 2s linear infinite; /* Safari */
+  animation: spin 2s linear infinite;
+}
+
+/* Safari */
+@-webkit-keyframes spin {
+  0% {
+    -webkit-transform: rotate(0deg);
+  }
+  100% {
+    -webkit-transform: rotate(360deg);
+  }
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
